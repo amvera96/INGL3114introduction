@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meet Your Classmates — UPRA</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+:root {
+  --navy:       #003366;
+  --navy-dark:  #002244;
+  --navy-mid:   #04458A;
+  --gold:       #C9A84C;
+  --gold-light: #F0D482;
+  --gold-pale:  #FDF6E3;
+  --white:      #FFFFFF;
+  --bg:         #F2F5FA;
+  --gray-light: #E8ECF4;
+  --gray:       #8892A4;
+  --text:       #1A2540;
+  --radius:     14px;
+  --shadow:     0 8px 32px rgba(0,51,102,0.13);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 0 0 3rem;
+  color: var(--text);
+}
+
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+  padding: 2.2rem 2rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(201,168,76,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 20% 0%,  rgba(201,168,76,0.10) 0%, transparent 60%);
+  pointer-events: none;
+}
+.header-inner { position: relative; z-index: 1; }
+
+.header-badge {
+  display: inline-block;
+  background: rgba(201,168,76,0.2);
+  border: 1px solid rgba(201,168,76,0.5);
+  color: var(--gold-light);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.28rem 1rem;
+  border-radius: 100px;
+  margin-bottom: 0.8rem;
+}
+.header h1 {
+  font-family: 'Playfair Display', serif;
+  color: var(--white);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+.header h1 span { color: var(--gold); }
+.header p { color: rgba(255,255,255,0.7); font-size: 0.92rem; }
+.gold-line {
+  width: 44px; height: 3px;
+  background: var(--gold);
+  border-radius: 2px;
+  margin: 0.9rem auto 0;
+}
+
+/* ── SECTION TABS ── */
+.tabs-wrapper {
+  max-width: 940px;
+  margin: 1.5rem auto 0;
+  padding: 0 1rem;
+}
+.tabs {
+  display: flex;
+  gap: 10px;
+  background: white;
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+  width: fit-content;
+}
+.tab-btn {
+  padding: 0.55rem 1.8rem;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  background: transparent;
+  color: var(--gray);
+  letter-spacing: 0.04em;
+}
+.tab-btn.active {
+  background: var(--navy);
+  color: var(--white);
+  box-shadow: 0 3px 12px rgba(0,51,102,0.22);
+}
+.tab-btn:not(.active):hover {
+  background: var(--gray-light);
+  color: var(--navy);
+}
+
+.section-label {
+  font-size: 0.78rem;
+  color: var(--gray);
+  margin-top: 0.5rem;
+  padding-left: 2px;
+}
+.section-label strong { color: var(--navy); }
+
+/* ── STATUS BAR ── */
+.status-bar {
+  max-width: 940px;
+  margin: 1rem auto 0;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.count-pill {
+  background: white;
+  border: 1px solid var(--gray-light);
+  border-radius: 100px;
+  padding: 0.38rem 1rem;
+  font-size: 0.82rem;
+  color: var(--navy);
+  font-weight: 500;
+}
+.count-pill strong { color: var(--gold); }
+.status-note { font-size: 0.8rem; color: var(--gray); }
+
+/* ── GRID ── */
+.grid-wrapper {
+  max-width: 940px;
+  margin: 1.2rem auto 0;
+  padding: 0 1rem;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 13px;
+}
+@media (max-width: 700px)  { .grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 480px)  { .grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } }
+
+/* ── BOXES ── */
+.box {
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.box:hover { transform: translateY(-4px) scale(1.02); box-shadow: var(--shadow); }
+.box:active { transform: scale(0.97); }
+
+.box-empty {
+  background: var(--white);
+  border: 2px dashed var(--gold);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4px;
+}
+.box-empty:hover { background: var(--gold-pale); border-color: var(--navy); }
+.box-empty .num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem; font-weight: 700;
+  color: var(--gold); line-height: 1;
+}
+.box-empty .add-label {
+  font-size: 0.6rem; font-weight: 600;
+  color: var(--gray); text-transform: uppercase;
+  letter-spacing: 0.06em; text-align: center; padding: 0 4px;
+}
+
+.box-filled { background: var(--navy); }
+.box-filled img.thumb {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.25s ease;
+}
+.box-filled:hover img.thumb { transform: scale(1.06); }
+.box-filled .name-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,30,70,0.92) 0%, transparent 100%);
+  padding: 1rem 0.5rem 0.4rem;
+  font-size: 0.7rem; font-weight: 600;
+  color: var(--white); text-align: center;
+  line-height: 1.2; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.box-filled.no-photo {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+}
+.box-filled.no-photo .emoji { font-size: 1.7rem; }
+.box-filled.no-photo .name-np {
+  font-size: 0.68rem; font-weight: 600;
+  color: var(--gold-light); text-align: center;
+  padding: 0 4px; line-height: 1.2;
+}
+.box-filled::after {
+  content: '★';
+  position: absolute; top: 5px; right: 6px;
+  font-size: 0.6rem; color: var(--gold);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* ── OVERLAY / MODAL ── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,20,50,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.18s ease;
+}
+.overlay.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 460px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,20,60,0.3);
+  animation: slideUp 0.22s ease;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: var(--gray-light); border: none;
+  width: 32px; height: 32px; border-radius: 50%;
+  font-size: 1.1rem; cursor: pointer;
+  color: var(--gray); display: flex;
+  align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: #d0d5e0; }
+
+.modal-section-tag {
+  display: inline-block;
+  background: var(--navy);
+  color: var(--gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.65rem;
+  border-radius: 6px;
+  margin-bottom: 0.6rem;
+}
+.modal-title {
+  font-family: 'Playfair Display', serif;
+  color: var(--navy);
+  font-size: 1.3rem;
+  margin-bottom: 1.3rem;
+  padding-right: 2rem;
+}
+
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block; font-size: 0.82rem;
+  font-weight: 600; color: var(--navy);
+  margin-bottom: 0.32rem; letter-spacing: 0.02em;
+}
+.field input[type="text"],
+.field textarea {
+  width: 100%;
+  padding: 0.62rem 0.82rem;
+  border: 2px solid var(--gray-light);
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.92rem; color: var(--text);
+  outline: none; transition: border 0.15s;
+}
+.field input:focus, .field textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+}
+.field textarea { resize: vertical; min-height: 85px; }
+
+.photo-zone {
+  border: 2px dashed var(--gold);
+  border-radius: 12px; padding: 1.1rem;
+  text-align: center; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  background: var(--gold-pale);
+}
+.photo-zone:hover { background: #F7ECC6; border-color: var(--navy); }
+.photo-zone .upload-icon { font-size: 1.7rem; margin-bottom: 0.25rem; }
+.photo-zone .upload-text { font-size: 0.8rem; color: var(--navy); font-weight: 500; }
+.photo-preview-img {
+  width: 100%; max-height: 170px; object-fit: cover;
+  border-radius: 8px; margin-top: 0.7rem;
+  display: none; border: 2px solid var(--gold);
+}
+
+.btn-save {
+  width: 100%; padding: 0.82rem;
+  background: var(--navy); color: white;
+  border: none; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.93rem; font-weight: 600;
+  cursor: pointer; margin-top: 1.1rem;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.btn-save:hover { background: var(--navy-mid); }
+.btn-save:active { transform: scale(0.98); }
+
+.btn-outline {
+  width: 100%; padding: 0.72rem;
+  background: transparent; color: var(--navy);
+  border: 2px solid var(--navy); border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; margin-top: 0.55rem;
+  transition: all 0.15s;
+}
+.btn-outline:hover { background: var(--navy); color: white; }
+
+.saving-msg {
+  text-align: center; color: var(--gray);
+  font-size: 0.85rem; margin-top: 0.5rem; display: none;
+}
+
+/* ── VIEW MODAL ── */
+.view-photo {
+  width: 100%; max-height: 230px; object-fit: cover;
+  border-radius: 12px; margin-bottom: 1rem; display: none;
+}
+.view-section-tag {
+  display: inline-block;
+  background: var(--gold-pale);
+  color: var(--navy);
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.18rem 0.65rem; border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+.view-name {
+  font-family: 'Playfair Display', serif;
+  color: var(--navy); font-size: 1.45rem;
+  font-weight: 700; margin-bottom: 0.3rem;
+}
+.view-gold-bar {
+  width: 38px; height: 3px; background: var(--gold);
+  border-radius: 2px; margin-bottom: 0.75rem;
+}
+.view-about { color: #3a4562; font-size: 0.93rem; line-height: 1.7; }
+
+/* ── SETUP BANNER ── */
+.setup-banner {
+  background: #FFF3CD;
+  border: 1px solid #FBBF24;
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  margin: 1rem auto;
+  max-width: 940px;
+  display: block;
+  font-size: 0.86rem;
+  color: #92400E; line-height: 1.5;
+}
+.setup-banner strong { color: #78350F; }
+.setup-banner.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-badge">UPRA · English Department</div>
+    <h1>Meet Your <span>Classmates</span> 👋</h1>
+    <p>Select your section, find your box, and share a photo and something about you!</p>
+    <div class="gold-line"></div>
+  </div>
+</div>
+
+<!-- SETUP WARNING -->
+<div class="setup-banner" id="setupBanner">
+  ⚠️ <strong>Professor Setup Required:</strong> Open this file in a text editor, find the Firebase config near the bottom, and replace the placeholder values with your Firebase project credentials.
+  <a href="https://console.firebase.google.com" target="_blank" style="color:#1D4ED8;font-weight:600;">→ Go to Firebase Console</a>
+</div>
+
+<!-- SECTION TABS -->
+<div class="tabs-wrapper">
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-DC0" onclick="switchSection('DC0')">Section DC0</button>
+    <button class="tab-btn"        id="tab-D25" onclick="switchSection('D25')">Section D25</button>
+  </div>
+  <div class="section-label" id="sectionLabel">
+    Showing <strong>Section DC0</strong> — <span id="sectionCount">0</span> / 30 profiles added
+  </div>
+</div>
+
+<!-- GRID -->
+<div class="grid-wrapper">
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     UPLOAD / EDIT MODAL
+═══════════════════════════════════ -->
+<div class="overlay" id="uploadOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeUpload()">✕</button>
+    <div class="modal-section-tag" id="modalSectionTag">DC0</div>
+    <div class="modal-title" id="modalTitle">✨ Add Your Profile</div>
+
+    <div class="field">
+      <label>📛 Full Name</label>
+      <input type="text" id="nameInput" placeholder="e.g. María González Reyes" maxlength="60">
+    </div>
+
+    <div class="field">
+      <label>💬 Tell Us Something About You</label>
+      <textarea id="aboutInput" placeholder="Your major, hometown, a fun fact, your favorite hobby, what you love about English…"></textarea>
+    </div>
+
+    <div class="field">
+      <label>📸 Your Favorite Photo</label>
+      <div class="photo-zone" id="photoZone" onclick="document.getElementById('photoInput').click()">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text" id="uploadText">Tap to choose a photo from your device</div>
+        <img id="photoPreview" class="photo-preview-img" alt="Preview">
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+    </div>
+
+    <button class="btn-save" onclick="saveProfile()">💾 Save My Profile</button>
+    <div class="saving-msg" id="savingMsg">⏳ Saving your profile…</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     VIEW PROFILE MODAL
+═══════════════════════════════════ -->
+<div class="overlay" id="viewOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeView()">✕</button>
+    <img id="viewImg" class="view-photo" alt="Profile photo">
+    <div class="view-section-tag" id="viewSectionTag">DC0</div>
+    <div class="view-name"  id="viewName"></div>
+    <div class="view-gold-bar"></div>
+    <div class="view-about" id="viewAbout"></div>
+    <button class="btn-outline" onclick="openEdit()">✏️ Edit This Profile</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     FIREBASE CONFIGURATION
+     ──────────────────────────────────────────────────────
+     STEP 1: Go to https://console.firebase.google.com
+     STEP 2: Create a project → Add Web App → Register
+     STEP 3: Copy your config values into the object below
+     STEP 4: Enable Realtime Database (Build → Realtime
+             Database → Create database → Test mode)
+     STEP 5: Save this file and upload it to Moodle
+═══════════════════════════════════════════════════════ -->
+<script>
+const firebaseConfig = {
+  apiKey:            "AIzaSyBVXZnXscz6ltZZkb77oZrMB_L_BN749Ns",
+  authDomain:        "meet-your-classmate-d0509.firebaseapp.com",
+  databaseURL:       "https://meet-your-classmate-d0509-default-rtdb.firebaseio.com",
+  projectId:         "meet-your-classmate-d0509",
+  storageBucket:     "meet-your-classmate-d0509.firebasestorage.app",
+  messagingSenderId: "1003877589620",
+  appId:             "1:1003877589620:web:ab7114f82bbbca16c36721"
+};
+
+// ── Config check ───────────────────────────────────────
+const isConfigured = !firebaseConfig.apiKey.includes("YOUR_");
+if (isConfigured) document.getElementById('setupBanner').classList.add('hidden');
+
+let db;
+if (isConfigured) {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+}
+
+// ── Constants ──────────────────────────────────────────
+const SECTIONS = ['DC0', 'D25'];
+const BOXES_PER_SECTION = 30;
+
+// ── State ──────────────────────────────────────────────
+let allProfiles  = { DC0: {}, D25: {} };
+let activeSection = 'DC0';
+let activeBox    = null;
+let activePhoto  = null;
+let unsubscribers = {};
+
+// ── Build grid (reused for both sections) ──────────────
+const grid = document.getElementById('grid');
+for (let i = 1; i <= BOXES_PER_SECTION; i++) {
+  const box = document.createElement('div');
+  box.id = `box-${i}`;
+  box.className = 'box box-empty';
+  box.innerHTML = `<div class="num">${i}</div><div class="add-label">Add me!</div>`;
+  box.addEventListener('click', () => handleClick(i));
+  grid.appendChild(box);
+}
+
+// ── Firebase listeners for both sections ───────────────
+if (isConfigured) {
+  SECTIONS.forEach(sec => {
+    db.ref(`profiles/${sec}`).on('value', snap => {
+      allProfiles[sec] = snap.val() || {};
+      if (sec === activeSection) renderGrid();
+      updateCount(sec);
+    });
+  });
+} else {
+  renderGrid();
+}
+
+// ── Switch section ─────────────────────────────────────
+function switchSection(sec) {
+  activeSection = sec;
+  SECTIONS.forEach(s => {
+    document.getElementById(`tab-${s}`).classList.toggle('active', s === sec);
+  });
+  renderGrid();
+  updateSectionLabel();
+}
+
+function updateSectionLabel() {
+  const count = Object.keys(allProfiles[activeSection]).length;
+  document.getElementById('sectionLabel').innerHTML =
+    `Showing <strong>Section ${activeSection}</strong> — <span id="sectionCount">${count}</span> / ${BOXES_PER_SECTION} profiles added`;
+}
+
+function updateCount(sec) {
+  if (sec === activeSection) updateSectionLabel();
+}
+
+// ── Render grid ────────────────────────────────────────
+function renderGrid() {
+  const profiles = allProfiles[activeSection];
+  let filled = 0;
+  for (let i = 1; i <= BOXES_PER_SECTION; i++) {
+    const box = document.getElementById(`box-${i}`);
+    const p   = profiles[i];
+    if (p) {
+      filled++;
+      if (p.photo) {
+        box.className = 'box box-filled';
+        box.innerHTML = `
+          <img class="thumb" src="${p.photo}" alt="${esc(p.name)}">
+          <div class="name-bar">${esc(p.name)}</div>`;
+      } else {
+        box.className = 'box box-filled no-photo';
+        box.innerHTML = `
+          <div class="emoji">😊</div>
+          <div class="name-np">${esc(p.name)}</div>`;
+      }
+    } else {
+      box.className = 'box box-empty';
+      box.innerHTML = `<div class="num">${i}</div><div class="add-label">Add me!</div>`;
+    }
+    // Re-bind click (innerHTML wipes the listener)
+    box.onclick = () => handleClick(i);
+  }
+  // update count label
+  const label = document.getElementById('sectionLabel');
+  if (label) {
+    label.innerHTML =
+      `Showing <strong>Section ${activeSection}</strong> — <span>${filled}</span> / ${BOXES_PER_SECTION} profiles added`;
+  }
+}
+
+// ── Box click ──────────────────────────────────────────
+function handleClick(i) {
+  activeBox = i;
+  const p = allProfiles[activeSection][i];
+  p ? openView(p) : openUpload();
+}
+
+// ── UPLOAD / EDIT MODAL ───────────────────────────────
+function openUpload(prefill) {
+  document.getElementById('nameInput').value  = prefill?.name  || '';
+  document.getElementById('aboutInput').value = prefill?.about || '';
+  activePhoto = prefill?.photo || null;
+
+  const prev = document.getElementById('photoPreview');
+  const txt  = document.getElementById('uploadText');
+  if (activePhoto) {
+    prev.src = activePhoto; prev.style.display = 'block';
+    txt.textContent = '✅ Photo loaded — tap to change';
+  } else {
+    prev.style.display = 'none';
+    txt.textContent = 'Tap to choose a photo from your device';
+  }
+  document.getElementById('modalTitle').textContent =
+    prefill ? '✏️ Edit Your Profile' : '✨ Add Your Profile';
+  document.getElementById('modalSectionTag').textContent = `Section ${activeSection}`;
+  document.getElementById('savingMsg').style.display = 'none';
+  document.getElementById('uploadOverlay').classList.add('active');
+}
+
+function closeUpload() {
+  document.getElementById('uploadOverlay').classList.remove('active');
+}
+
+function openEdit() {
+  closeView();
+  openUpload(allProfiles[activeSection][activeBox]);
+}
+
+// ── VIEW MODAL ────────────────────────────────────────
+function openView(p) {
+  const img = document.getElementById('viewImg');
+  if (p.photo) { img.src = p.photo; img.style.display = 'block'; }
+  else           { img.style.display = 'none'; }
+  document.getElementById('viewSectionTag').textContent = `Section ${activeSection}`;
+  document.getElementById('viewName').textContent  = p.name;
+  document.getElementById('viewAbout').textContent = p.about || '(No description yet)';
+  document.getElementById('viewOverlay').classList.add('active');
+}
+
+function closeView() {
+  document.getElementById('viewOverlay').classList.remove('active');
+}
+
+// ── PHOTO PREVIEW ─────────────────────────────────────
+function previewPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 500;
+      let w = img.width, h = img.height;
+      if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      else if (h > MAX)     { w = Math.round(w * MAX / h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      activePhoto = canvas.toDataURL('image/jpeg', 0.72);
+      const prev = document.getElementById('photoPreview');
+      prev.src = activePhoto; prev.style.display = 'block';
+      document.getElementById('uploadText').textContent = '✅ Photo ready!';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SAVE ──────────────────────────────────────────────
+function saveProfile() {
+  const name  = document.getElementById('nameInput').value.trim();
+  const about = document.getElementById('aboutInput').value.trim();
+  if (!name) { alert('Please enter your name before saving.'); return; }
+  if (!isConfigured) {
+    alert('⚠️ Firebase is not configured yet. Please follow the setup instructions in the file.');
+    return;
+  }
+  const msg = document.getElementById('savingMsg');
+  msg.style.display = 'block';
+  db.ref(`profiles/${activeSection}/${activeBox}`).set({
+    name, about, photo: activePhoto || null
+  }).then(() => {
+    closeUpload();
+  }).catch(err => {
+    msg.style.display = 'none';
+    alert('Error saving: ' + err.message);
+  });
+}
+
+// ── Escape HTML ───────────────────────────────────────
+function esc(s) {
+  return (s || '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+  );
+}
+
+// ── Close modals on backdrop click ────────────────────
+['uploadOverlay','viewOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+});
+</script>
+</body>
+</html>
